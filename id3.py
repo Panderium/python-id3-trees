@@ -210,6 +210,29 @@ def pretty_print_tree(root):
     print(os.linesep.join(rules))
 
 
+def compute_node(node, row, name_to_idx):
+    global success
+    list_of_attack = ['U2R', 'R2L', 'Probing', 'DoS', ]
+    try:
+        if 'label' in node:
+            if (node['label'] == row[14] or (node['label'] == 'attack' and row[14] in list_of_attack)):
+                success += 1
+        else:
+            compute_node(node['nodes'][row[name_to_idx[node['attribute']]]], row, name_to_idx)
+            pass
+    except:
+        pass
+
+
+def test_tree(root, data):
+    global success
+    success = 0
+
+    name_to_idx = data['name_to_idx']
+    for row in data['rows']:
+        compute_node(root,row,name_to_idx)
+    return (100 * ((success/len(data['rows']))))
+
 def main():
     argv = sys.argv
     print("Command line args are {}: ".format(argv))
@@ -219,6 +242,9 @@ def main():
     data = load_csv_to_header_data(config['data_file'])
     data = project_columns(data, config['data_project_columns'])
 
+    test = load_csv_to_header_data(config['test_file'])
+    test = project_columns(test, config['data_project_columns'])
+
     target_attribute = config['target_attribute']
     remaining_attributes = set(data['header'])
     remaining_attributes.remove(target_attribute)
@@ -227,7 +253,9 @@ def main():
 
     root = id3(data, uniqs, remaining_attributes, target_attribute)
 
-    pretty_print_tree(root)
+    #pretty_print_tree(root)
+    print("Le taux de success sur les données d'entrainement est de {}%.".format(test_tree(root, data)))
+    print("Le taux de success sur les données de test est de {}%.".format(test_tree(root, test)))
 
 
 if __name__ == "__main__": main()
