@@ -6,6 +6,8 @@ import os
 
 results = list()
 success = 0
+fp = 0
+vp = 0
 
 def load_csv_to_header_data(filename):
     fpath = os.path.join(os.getcwd(), filename)
@@ -215,11 +217,17 @@ def pretty_print_tree(root):
 
 def compute_node(node, row, name_to_idx):
     global success
+    global fp
+    global vp
     list_of_attack = ['U2R', 'R2L', 'Probing', 'DoS', ]
     try:
         if 'label' in node:
             if (node['label'] == row[14] or (node['label'] == 'attack' and row[14] in list_of_attack)):
                 success += 1
+                if (row[14] == 'normal' and node['label'] == 'normal'):
+                    vp += 1
+            elif (row[14] in list_of_attack and node['label'] == 'normal'):
+                fp += 1
         else:
             compute_node(node['nodes'][row[name_to_idx[node['attribute']]]], row, name_to_idx)
             pass
@@ -229,12 +237,16 @@ def compute_node(node, row, name_to_idx):
 
 def test_tree(root, data):
     global success
+    global fp
+    global vp
+    vp = 0
+    fp = 0
     success = 0
-
     name_to_idx = data['name_to_idx']
     for row in data['rows']:
         compute_node(root,row,name_to_idx)
-    return (100 * (success/len(data['rows'])))
+    
+    return (100 * (success/len(data['rows'])), (fp/(fp + vp) * 100))
 
 
 def main():
@@ -260,8 +272,12 @@ def main():
     root = id3(data, uniqs, remaining_attributes, target_attribute, alpha)
 
     pretty_print_tree(root)
-    print("Le taux de success sur les données d'entrainement est de {}%.".format(test_tree(root, data)))
-    print("Le taux de success sur les données de test est de {}%.".format(test_tree(root, test)))
+    ts, tfp = test_tree(root, data)
+    print("Le taux de success sur les données d'entrainement est de {}%.".format(ts))
+    print("Le taux de faux positif sur les données d'entrainement est de {}%.".format(tfp))
+    ts, tfp = test_tree(root, test)
+    print("Le taux de faux positif sur les données de test est de {}%.".format(tfp))
+    print("Le taux de success sur les données de test est de {}%.".format(ts))
 
 
 if __name__ == "__main__": main()
